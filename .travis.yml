@@ -1,0 +1,9 @@
+language: scala
+scala: 2.12.8
+jdk: oraclejdk8
+sudo: required
+services:
+  - mongodb
+admin: enabled
+before_script:
+  - mongoimport --db locations --collection locations_collection --file SxGeotoMongoTravis.json
