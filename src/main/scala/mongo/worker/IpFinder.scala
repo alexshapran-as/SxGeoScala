@@ -39,10 +39,10 @@ object IpFinder {
         collection.find(equal("fromStr", ipFound)).headOption().collect({
           case data => data match {
             case Some(IpLocation(_id, fromStr, from, toStr, to, location)) =>
-              logger.info(s"${compact(render(location))} was successfully received from Mongo DB")
+              logger.info(s"${compact(render(location))} было удачно получено из Mongo DB")
               Right(IpLocation(_id, fromStr, from, toStr, to, location))
             case None =>
-              logger.error("Error searching in Mongo DB")
+              logger.error("Ошибка поиска в базе данных Mongo DB")
               Left("Ошибка поиска в базе данных")
 
         }

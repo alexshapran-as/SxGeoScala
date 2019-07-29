@@ -14,11 +14,14 @@ import mongo.worker.Worker.IpLocation
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{DefaultFormats, JValue}
+import org.slf4j.LoggerFactory
 import spray.json._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object ApiService {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
   final case class JsonRequest(ip: String, show: String)
   def errorJson(errorMessage: String): String = pretty(render(Map("success" -> "false", "Error" -> errorMessage)))
@@ -52,6 +55,7 @@ object ApiService {
         val showParam: String = (parsedJson \ "show").extract[String]
         Right(JsonRequest(ipParam, showParam))
       } else {
+        logger.error("Отказано в доступе")
         Left(errorJson("Отказано в доступе"))
       }
 
@@ -65,6 +69,7 @@ object ApiService {
         if (location.contains(show))
           pretty( render(Map("success" -> "true")) merge render( Map("result" -> Map(show -> location(show)))) )
         else
+          logger.error("Для данного IP-адреса не найдена информация про ${show}")
           errorJson(s"Для данного IP-адреса не найдена информация про ${show}")
       case (Left(errorMsg), _) =>
         errorJson(errorMsg)
