@@ -13,6 +13,10 @@ fatJar архив `API-ip-assembly-0.1.jar` со всеми необходимы
 * ip
 * show (City, Region, Country)
 
+Каждый	запрос	к	API	должен	содержать	HTTP	header	Signature.	
+Для	вычисления	подписи	Signature	используется	алгоритм	HMAC-SHA256.	
+Подписи	подлежит тело	запроса.
+
 Пример запроса:
 
  `curl -X POST \                                   `  
