@@ -126,6 +126,14 @@ object SxGeotoMongoParser {
 
   }
 
+  // Декодирует hex побайтно и получает ip
+  @tailrec
+  def decodeIP(ipBlockTemp: Array[Byte], ipBlockLength: Int)(firstIp: String = ""): String = (ipBlockTemp, ipBlockLength) match {
+    case (_, len) if len <= 0 => firstIp.dropRight(1)
+    case (Array(), _) => ""
+    case (block, len) => decodeIP(block.drop(1), len - 1)(firstIp + java.lang.Long.decode("0x" + block.take(1).map("%02x".format(_)).mkString("")).toString + ".")
+  }
+
   case class MainIndex(headerParsetoMap: Map[String, String]) {
 
     val elemsInMainIndex: Int = headerParsetoMap("items in the main index").toInt // количество фрагментов 1775
@@ -138,13 +146,6 @@ object SxGeotoMongoParser {
       case (_, count) if count == elemsInMainIndex => firstIpParsedSeq
       case (Array(), _) => Seq()
       case (block, count) =>
-        // Декодирует hex побайтно и получает ip
-        @tailrec
-        def decodeIP(ipBlockTemp: Array[Byte], ipBlockLength: Int)(firstIp: String = ""): String = (ipBlockTemp, ipBlockLength) match {
-          case (_, len) if len <= 0 => firstIp.dropRight(1)
-          case (Array(), _) => ""
-          case (block, len) => decodeIP(block.drop(1), len - 1)(firstIp + java.lang.Long.decode("0x" + block.take(1).map("%02x".format(_)).mkString("")).toString + ".")
-        }
         parseFirstIp(block.drop(firstIpBlockLength))(count + 1, firstIpParsedSeq :+ decodeIP(block.take(firstIpBlockLength), firstIpBlockLength)())
 
     }
@@ -404,12 +405,6 @@ object SxGeotoMongoParser {
         case (_, count) if count == countofRangesforOneFirstIP => parsedRanges
         case (Array(), _) => Seq()
         case (block, count) =>
-          @tailrec
-          def decodeIP(ipBlockTemp: Array[Byte], ipBlockLength: Int)(s: String = ""): String = (ipBlockTemp, ipBlockLength) match {
-            case (_, len) if len <= 0 => s.dropRight(1)
-            case (Array(), _) => ""
-            case (block, len) => decodeIP(ipBlockTemp.drop(1), len - 1)(s + java.lang.Long.decode("0x" + block.take(1).map("%02x".format(_)).mkString("")).toString + ".")
-          }
           val id = java.lang.Long.decode("0x" + block.slice(rangeBlockLength, rangeBlockLength + idBlockSizeinBytes).map("%02x".format(_)).mkString(""))
           if (id < sizeofDirectoryofCountries) {
             val countrySeek = id.toInt
@@ -458,20 +453,14 @@ object SxGeotoMongoParser {
           @tailrec
           def addToDB(parsedIpLocations: Seq[IpLocationInfo]): Boolean = parsedIpLocations match {
             case Seq() => true
-            case currentParsedIpLocation :: Seq() =>
-              val fromIpinRange: (String, Long) = getIPstringIPint(currentParsedIpLocation.ip)
-              val toIpinRange: (String, Long) = getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
-              val doctoSavetoDB: IpLocation = IpLocation(fromIpinRange._1, fromIpinRange._2, toIpinRange._1, toIpinRange._2, currentParsedIpLocation.locationInfo)
-              collection.insertOne(doctoSavetoDB).toFuture().onComplete {
-                case Failure(e) =>
-                  logger.error(e.toString + " Error inserting to Mongo DB: ip = " + currentParsedIpLocation.ip + " location = " + currentParsedIpLocation.locationInfo)
-                case Success(obj) =>
-                  logger.info(s"$obj was successfully inserted to Mongo DB: ID/IP = ${doctoSavetoDB._id} Location = ${doctoSavetoDB.Location}")
-              }
-              true
             case currentParsedIpLocation :: remainingParsedIpLocations =>
               val fromIpinRange: (String, Long) = getIPstringIPint(currentParsedIpLocation.ip)
-              val toIpinRange: (String, Long) = if (remainingParsedIpLocations.head.ip != "") getIPstringIPint(remainingParsedIpLocations.head.ip) else getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
+              val toIpinRange: (String, Long) = if (remainingParsedIpLocations.nonEmpty) {
+                 if (remainingParsedIpLocations.head.ip != "") getIPstringIPint(remainingParsedIpLocations.head.ip)
+                 else getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
+              } else {
+                getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
+              }
               val doctoSavetoDB: IpLocation = IpLocation(fromIpinRange._1, fromIpinRange._2, toIpinRange._1, toIpinRange._2, currentParsedIpLocation.locationInfo)
               collection.insertOne(doctoSavetoDB).toFuture().onComplete {
                 case Failure(e) =>

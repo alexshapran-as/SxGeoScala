@@ -40,12 +40,12 @@ class ApiServiceTest extends FunSuite with Matchers {
     "10.10.10.10" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("10.10.10.10"), "signature" -> "W94bsQnmqocPpw9kazxmf/2ivC8f/h91EIAz7Nv/AqA="),
     "172.1.2.3" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("172.1.2.3"), "signature" -> "tC73LsELdw/S7dJr3mRFwPxK8fvfGEoIEw+ht5Xb9T8="),
     "256.256.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "AT+xSKbgq8El8Pr0SFWMo11Vc/cXYNqjlO8OYFXPZY4="),
-    "2.2.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "Incorrect Signature")
+    "2.2.1.1" -> Map("expectedValue" -> eighthExpectedValue, "signature" -> "Incorrect Signature")
   )
 
 
   test("testStartRouting") {
-    val ipstoSearch: Seq[String] = Seq("28.50.35.214", "17.171.157.87", "18.128.64.170", "0.0.0.0", "10.10.10.10", "172.1.2.3", "256.256.1.1")
+    val ipstoSearch: Seq[String] = Seq("28.50.35.214", "17.171.157.87", "18.128.64.170", "0.0.0.0", "10.10.10.10", "172.1.2.3", "256.256.1.1", "2.2.1.1")
     ipstoSearch.foreach({ ip =>
       Http("http://127.0.0.1:8080/SxGeoScala/location/find").postData(s"""{"ip":"${ip}","show":""}""")
         .headers( Seq( ("signature", expectedValues(ip)("signature")), ("Content-Type", "application/json") ) )

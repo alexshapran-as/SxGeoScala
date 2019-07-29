@@ -22,8 +22,6 @@ fatJar архив `API-ip-assembly-0.1.jar` со всеми необходимы
  `curl -X POST \                                   `  
  ` http://localhost:8080/SxGeoScala/location/find \`  
  `-H 'Content-Type: application/json' \            `  
- `-H 'Host: localhost:8080' \                      `  
- `-H 'cache-control: no-cache' \                   `  
  `-H 'signature: ***' \                            `  
  `-d '{ "ip": "28.50.35.214", "show": "" }'        `
 

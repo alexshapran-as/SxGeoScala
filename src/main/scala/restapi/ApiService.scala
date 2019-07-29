@@ -9,12 +9,11 @@ import akka.stream.ActorMaterializer
 import configurations.Conf.{confInterface, confPort, confSecretKey}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import mongo.worker.Worker.IpLocation
 import mongo.worker.IpFinder.findEitherIPorErrorMsg
-import org.json4s.{DefaultFormats, JValue}
+import mongo.worker.Worker.IpLocation
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-import org.slf4j.LoggerFactory
+import org.json4s.{DefaultFormats, JValue}
 import spray.json._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -23,8 +22,6 @@ object ApiService {
 
   final case class JsonRequest(ip: String, show: String)
   def errorJson(errorMessage: String): String = pretty(render(Map("success" -> "false", "Error" -> errorMessage)))
-
-  private val logger = LoggerFactory.getLogger(getClass)
 
   implicit val system: ActorSystem = ActorSystem("routing-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
