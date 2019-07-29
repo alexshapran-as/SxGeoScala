@@ -29,7 +29,7 @@ class SxGeotoMongoParserTest extends FunSuite with Matchers {
     val testByteArrayOfSxGeo: Array[Byte] = download()
     val testHeader = Header()
     val testHeaderParsetoMap: Map[String, String] = testHeader.parseHeader(testByteArrayOfSxGeo.take(testHeader.headerSize))()
-    val testParseDescription = testHeader.parseDescription(testByteArrayOfSxGeo.slice(testHeader.headerSize, testHeader.headerSize + testHeaderParsetoMap("size description of the packing format of the city / region / country").toInt))
+    val testParseDescription = testHeader.parseDescriptionsofPackagingFormat(testByteArrayOfSxGeo.slice(testHeader.headerSize, testHeader.headerSize + testHeaderParsetoMap("size description of the packing format of the city / region / country").toInt))
     testHeaderParsetoMap should(be (expectedValueforTestHeaderParsetoMap) or be (expectedValueforTestHeaderParsetoMapforTravis))
     testParseDescription should be (expectedValueforTestParseDescription)
   }

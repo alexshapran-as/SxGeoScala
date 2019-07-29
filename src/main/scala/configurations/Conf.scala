@@ -10,6 +10,7 @@ object Conf {
   val confHost: String = conf.getString("conf.mongo.host")
   val confDatabaseName: String = conf.getString("conf.mongo.databaseName")
   val confCollectionName: String = conf.getString("conf.mongo.collectionName")
-  val confInterface: String = conf.getString("conf.receiver.interface")
-  val confPort: Int = conf.getInt("conf.receiver.port")
+  val confInterface: String = conf.getString("conf.apiservice.interface")
+  val confPort: Int = conf.getInt("conf.apiservice.port")
+  val confSecretKey: String = conf.getString("conf.apiservice.secretKey")
 }

@@ -1,7 +1,7 @@
 
 import org.slf4j.{Logger, LoggerFactory}
 import parser.scheduler.ParserService.scheduleInit
-import restapi.Receiver.startRouting
+import restapi.ApiService.RoutingService
 
 object apiIP {
 
@@ -13,7 +13,7 @@ object apiIP {
 
     scheduleInit()
 
-    startRouting()
+    RoutingService().startRouting()
 
   }
 }
