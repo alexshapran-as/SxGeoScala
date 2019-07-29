@@ -33,13 +33,13 @@ class ApiServiceTest extends FunSuite with Matchers {
   val eighthExpectedValue: String = pretty(render(Map("success" -> "false","Error" -> "Отказано в доступе")))
 
   val expectedValues: Map[String, Map[String, String]] = Map(
-    "28.50.35.214" -> Map("expectedValue" -> firstExpectedValue, "signature" -> "BPThmgKm5yKZ9FajqcWa/0pKB4gtsQof5i6belLYIgI="),
-    "17.171.157.87" -> Map("expectedValue" -> secondExpectedValue, "signature" -> "ejZA3t8m1BUCKUVOnW1KGFa3o62kDXgA0FHUtofuOqE="),
-    "18.128.64.170" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("18.128.64.170"), "signature" -> "xgDalR+58k6FO9bQR8pqX9yL4DGBB0q7j+vLd+Qjlig="),
-    "0.0.0.0" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("0.0.0.0"), "signature" -> "BTXBbjsLocfvZqedg4NLOzPCoFdpsoUcUQ4Gzd2TchU="),
-    "10.10.10.10" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("10.10.10.10"), "signature" -> "eHNYp1tbMZB2XIV3+RZHvPdIajsMKKDjwA0FZi2h0dU="),
-    "172.1.2.3" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("172.1.2.3"), "signature" -> "agYW8360sqlz7QZ3HHVWhTcHyWaBnlQp9uI7n1sgy28="),
-    "256.256.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "ouCk9c3YrW2HisPVW5wPn2X/lL0uY4NjVgDSZ4Ky86Y="),
+    "28.50.35.214" -> Map("expectedValue" -> firstExpectedValue, "signature" -> "HaxZU+varWZoxkumM3MB48yvYV42TsP9//2zqJlOU8w="),
+    "17.171.157.87" -> Map("expectedValue" -> secondExpectedValue, "signature" -> "oloPaVmOevroouU9Vt0qJy4AvGIOcLPakxXUU53j2to="),
+    "18.128.64.170" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("18.128.64.170"), "signature" -> "2DRrYf3tb99+qCQEaB8KY1orVfHo2KnE9cD8G+2p2ig="),
+    "0.0.0.0" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("0.0.0.0"), "signature" -> "kmEYjQtOyEzWjyVWVXc5lnfM+pHX0NV7rn5CyqsQUmA="),
+    "10.10.10.10" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("10.10.10.10"), "signature" -> "W94bsQnmqocPpw9kazxmf/2ivC8f/h91EIAz7Nv/AqA="),
+    "172.1.2.3" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("172.1.2.3"), "signature" -> "tC73LsELdw/S7dJr3mRFwPxK8fvfGEoIEw+ht5Xb9T8="),
+    "256.256.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "AT+xSKbgq8El8Pr0SFWMo11Vc/cXYNqjlO8OYFXPZY4="),
     "2.2.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "Incorrect Signature")
   )
 

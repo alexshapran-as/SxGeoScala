@@ -9,8 +9,9 @@ import akka.stream.ActorMaterializer
 import configurations.Conf.{confInterface, confPort, confSecretKey}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import mongo.worker.Worker.IpLocation
 import mongo.worker.IpFinder.findEitherIPorErrorMsg
-import mongo.worker.Worker._
+import org.json4s.{DefaultFormats, JValue}
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.slf4j.LoggerFactory
@@ -35,14 +36,41 @@ object ApiService {
 
   case class RoutingService() extends Directives with JsonSupport {
 
-    def generateHMAC(preHashJsonRequest: JsonRequest): String = {
+    def generateHMAC(preHashString: String): String = {
 
-      val preHashString: String = "ip=" + preHashJsonRequest.ip.toLowerCase() + "&show=" + preHashJsonRequest.show.toLowerCase()
       val secret: SecretKeySpec = new javax.crypto.spec.SecretKeySpec(confSecretKey.getBytes("UTF-8"), "HmacSHA256")
       val mac: Mac = javax.crypto.Mac.getInstance("HmacSHA256")
       mac.init(secret)
-      val result: Array[Byte] = mac.doFinal(preHashString.getBytes("UTF-8"))
+      val result: Array[Byte] = mac.doFinal(preHashString.replaceAll("\n", "").replaceAll("\\s", "").getBytes("UTF-8"))
       new sun.misc.BASE64Encoder().encode(result)
+
+    }
+
+    def checkSignatures(clientSignature: String, paramValues: String): Either[String, JsonRequest] = {
+
+      if (clientSignature == generateHMAC(paramValues)) {
+        implicit val formats = DefaultFormats
+        val parsedJson: JValue = parse(paramValues)
+        val ipParam: String = (parsedJson \ "ip").extract[String]
+        val showParam: String = (parsedJson \ "show").extract[String]
+        Right(JsonRequest(ipParam, showParam))
+      } else {
+        Left(errorJson("Отказано в доступе"))
+      }
+
+    }
+
+    def getResponse(ipLocationOrErrorMsg: Either[String, IpLocation], showParametr: String): String = (ipLocationOrErrorMsg, showParametr.toLowerCase) match {
+
+      case (Right(IpLocation(_, _, _, _, _, location)), "") =>
+        pretty(render(Map("success" -> "true")) merge render(Map("result" -> location)))
+      case (Right(IpLocation(_, _, _, _, _, location)), show) =>
+        if (location.contains(show))
+          pretty( render(Map("success" -> "true")) merge render( Map("result" -> Map(show -> location(show)))) )
+        else
+          errorJson(s"Для данного IP-адреса не найдена информация про ${show}")
+      case (Left(errorMsg), _) =>
+        errorJson(errorMsg)
 
     }
 
@@ -51,48 +79,24 @@ object ApiService {
       val route =
         post {
             path("SxGeoScala" / "location" / "find") {
-              entity(as[JsonRequest]) { requestJsonValue: JsonRequest =>
-                extractRequest { requestHeaderValues =>
+              entity(as[String]) { requestParamValues: String =>
+                optionalHeaderValueByName("signature") {
 
-                  if ( requestHeaderValues.getHeader("signature").get().value() == generateHMAC(requestJsonValue) ) {
-
-                    val range: Future[Either[String, IpLocation]] = findEitherIPorErrorMsg(requestJsonValue.ip)
-
-                    complete(
-                      range.collect({
-                        case data => data match {
-
-                          case Right(IpLocation(_, _, _, _, _, location)) => requestJsonValue.show.toLowerCase match {
-
-                            case "city" =>
-                              if (location.contains("City"))
-                                HttpEntity(ContentTypes.`application/json`, pretty(render(Map("success" -> "true")) merge
-                                  render( Map("result" -> Map("City" -> location("City")) ))))
-                              else
-                                HttpEntity(ContentTypes.`application/json`, errorJson(s"Для IP-адреса ${requestJsonValue.ip} не найдена информация про город"))
-                            case "region" =>
-                              if (location.contains("Region"))
-                                HttpEntity(ContentTypes.`application/json`, pretty(render(Map("success" -> "true")) merge
-                                  render( Map("result" -> Map("Region" -> location("Region")) ))))
-                              else
-                                HttpEntity(ContentTypes.`application/json`, errorJson(s"Для IP-адреса ${requestJsonValue.ip} не найдена информация про регион"))
-                            case "country" =>
-                              HttpEntity(ContentTypes.`application/json`, pretty(render(Map("success" -> "true")) merge
-                                render( Map("result" -> Map("Country" -> location("Country")) ))))
-                            case _ =>
-                              HttpEntity(ContentTypes.`application/json`, pretty(render(Map("success" -> "true")) merge render(Map("result" -> location))))
-
-                          }
-
-                          case Left(errorMsg) => HttpEntity(ContentTypes.`application/json`, errorJson(errorMsg))
-
+                  case Some(headerSignature) => {
+                    val responseJsonLocationOrJsonError: Either[String, Future[String]] = checkSignatures(headerSignature, requestParamValues).map {
+                      jsonRequest =>
+                        val range: Future[Either[String, IpLocation]] = findEitherIPorErrorMsg(jsonRequest.ip)
+                        range.collect {
+                          case data => getResponse(data, jsonRequest.show)
                         }
+                    }
+                    complete(
+                      responseJsonLocationOrJsonError match {
+                        case Left(errorJsonMsg) => HttpEntity(ContentTypes.`application/json`, errorJsonMsg)
+                        case Right(response) => response.collect { case data => HttpEntity(ContentTypes.`application/json`, data) }
                       })
-                    )
-                  } else {
-                    logger.error(s"Error: Incorrect Signature")
-                    complete(HttpEntity(ContentTypes.`application/json`, errorJson("Отказано в доступе")))
                   }
+                  case None => complete(HttpEntity(ContentTypes.`application/json`, errorJson("Нет подписи. Отказано в доступе")))
 
                 }
               }

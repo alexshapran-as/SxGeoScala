@@ -419,7 +419,7 @@ object SxGeotoMongoParser {
               firstOctetOfIP,
               count + 1,
               parsedRanges :+ IpLocationInfo(ip = java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." + decodeIP(block.take(rangeBlockLength), rangeBlockLength)(),
-                locationInfo = Map("Country" -> country)))
+                locationInfo = Map("country" -> country)))
           }
           else {
 
@@ -434,7 +434,7 @@ object SxGeotoMongoParser {
               firstOctetOfIP,
               count + 1,
               parsedRanges :+ IpLocationInfo(ip = java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." + decodeIP(block.take(rangeBlockLength), rangeBlockLength)(),
-                locationInfo = Map("City" -> city, "Region" -> region, "Country" -> country)))
+                locationInfo = Map("city" -> city, "region" -> region, "country" -> country)))
           }
 
       }
