@@ -31,7 +31,7 @@ object ApiService {
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-    implicit val orderFormat = jsonFormat2(JsonRequest)
+    implicit val orderFormat: RootJsonFormat[JsonRequest] = jsonFormat2(JsonRequest)
   }
 
   case class RoutingService() extends Directives with JsonSupport {
@@ -66,11 +66,13 @@ object ApiService {
       case (Right(IpLocation(_, _, _, _, _, location)), "") =>
         pretty(render(Map("success" -> "true")) merge render(Map("result" -> location)))
       case (Right(IpLocation(_, _, _, _, _, location)), show) =>
-        if (location.contains(show))
+        if (location.contains(show)) {
           pretty( render(Map("success" -> "true")) merge render( Map("result" -> Map(show -> location(show)))) )
-        else
+        }
+        else {
           logger.error("Для данного IP-адреса не найдена информация про ${show}")
           errorJson(s"Для данного IP-адреса не найдена информация про ${show}")
+        }
       case (Left(errorMsg), _) =>
         errorJson(errorMsg)
 

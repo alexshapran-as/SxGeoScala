@@ -461,7 +461,7 @@ object SxGeotoMongoParser {
               } else {
                 getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
               }
-              val doctoSavetoDB: IpLocation = IpLocation(fromIpinRange._1, fromIpinRange._2, toIpinRange._1, toIpinRange._2, currentParsedIpLocation.locationInfo)
+              val doctoSavetoDB: IpLocation = IpLocation(fromIpinRange._1 + "-" + toIpinRange._1, fromIpinRange._1, fromIpinRange._2, toIpinRange._1, toIpinRange._2, currentParsedIpLocation.locationInfo)
               collection.insertOne(doctoSavetoDB).toFuture().onComplete {
                 case Failure(e) =>
                   logger.error(e.toString + " Error inserting to Mongo DB: ip = " + currentParsedIpLocation.ip + " location = " + currentParsedIpLocation.locationInfo)
