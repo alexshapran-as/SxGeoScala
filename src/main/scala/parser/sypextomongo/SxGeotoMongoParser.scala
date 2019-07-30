@@ -63,7 +63,7 @@ object SxGeotoMongoParser {
     val parsedDescriptionsInArrayofItemNameItemSize: Array[Array[Map[String, Int]]] = descriptionBlockofBytes
         .map(byte => if (byte == "00".toByte) ' ' else byte.toChar).mkString("")
         .split(' ').map(packagingFormat => packagingFormat.split('/').map(elem => {
-            val sizeAndname = elem.split(':')
+            val sizeAndname: Array[String] = elem.split(':')
             sizeAndname(0) match {
               case size1: String if size1 == "t" || size1 == "T" => Map(sizeAndname(1) -> 1)
               case size2: String if size2 == "s" || size2 == "S" || size2 == "n2" || size2 == "c2" => Map(sizeAndname(1) -> 2)

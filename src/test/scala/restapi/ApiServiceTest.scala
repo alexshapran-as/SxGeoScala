@@ -10,20 +10,20 @@ class ApiServiceTest extends FunSuite with Matchers {
 
   RoutingService().startRouting()
 
-  val firstExpectedValue: String = pretty(render(Map("success" -> "true")) merge render(Map("result" -> Map("Region" -> Map("name_en" -> "California",
+  val firstExpectedValue: String = pretty(render(Map("success" -> "true")) merge render(Map("result" -> Map("region" -> Map("name_en" -> "California",
     "name_ru" -> "Калифорния", "iso" -> "US-CA", "id" -> "5332921", "country_seek" -> "5967"),
-    "City" -> Map("name_en" -> "Norwalk", "name_ru" -> "Норуолк", "region_seek" -> "9881", "id" -> "5377995",
+    "city" -> Map("name_en" -> "Norwalk", "name_ru" -> "Норуолк", "region_seek" -> "9881", "id" -> "5377995",
       "lon" -> "-118.08172", "country_id" -> "225", "lat" -> "33.90224"),
-    "Country" -> Map("name_en" -> "United States", "name_ru" -> "США", "iso" -> "US", "id" -> "225",
+    "country" -> Map("name_en" -> "United States", "name_ru" -> "США", "iso" -> "US", "id" -> "225",
       "lon" -> "556.86", "lat" -> "39.76")))))
 
 
   val secondExpectedValue: String = pretty(render(Map("success" -> "true")) merge
-    render(Map("result" -> Map("Region" -> Map("name_en" -> "California", "name_ru" -> "Калифорния", "iso" -> "US-CA", "id" -> "5332921",
+    render(Map("result" -> Map("region" -> Map("name_en" -> "California", "name_ru" -> "Калифорния", "iso" -> "US-CA", "id" -> "5332921",
       "country_seek" -> "5967"),
-      "City" -> Map("name_en" -> "Cupertino", "name_ru" -> "Купертино", "region_seek" -> "9881", "id" -> "5341145", "lon" -> "-122.03217",
+      "city" -> Map("name_en" -> "Cupertino", "name_ru" -> "Купертино", "region_seek" -> "9881", "id" -> "5341145", "lon" -> "-122.03217",
         "country_id" -> "225", "lat" -> "37.32300"),
-      "Country" -> Map("name_en" -> "United States", "name_ru" -> "США", "iso" -> "US", "id" -> "225", "lon" -> "556.86", "lat" -> "39.76") ))))
+      "country" -> Map("name_en" -> "United States", "name_ru" -> "США", "iso" -> "US", "id" -> "225", "lon" -> "556.86", "lat" -> "39.76") ))))
 
   def thirdFourthFifthSixthExpectedValues(ip: String): String = pretty(render(Map("success" -> "false",
                                                                             "Error" -> s"Местоположение с ip = $ip не было найдено в базе данных")))
