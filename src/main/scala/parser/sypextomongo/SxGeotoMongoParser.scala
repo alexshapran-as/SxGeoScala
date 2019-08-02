@@ -1,12 +1,12 @@
 package parser.sypextomongo
 
-import parser.ipbuilder.IpBuilder.getIPstringIPint
-import downloader.Downloader.download
-import mongo.worker.Worker.{IpLocation, collection}
 import java.text.SimpleDateFormat
 import java.util.Date
+import downloader.Downloader.download
+import mongo.worker.Worker.{IpLocation, collection}
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
+import parser.ipbuilder.IpBuilder.getIPstringIPint
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -29,7 +29,7 @@ object SxGeotoMongoParser {
 
     @tailrec
     final def parseHeader(headerBlockofBytes: Array[Byte])(sizesofItemsinHeader: Seq[(String, Int)] = sizesofItemsinHeader,
-                                                           parsedHeader: Seq[(String, String)] = Seq()): Map[String, String] =
+                                                           parsedHeader: Seq[(String, String)] = Seq.empty[(String, String)]): Map[String, String] =
       (headerBlockofBytes, sizesofItemsinHeader) match {
 
       case (Array(), _) => parsedHeader.toMap
@@ -114,7 +114,7 @@ object SxGeotoMongoParser {
       val itemsInFirstByteIndex: Int = headerParsetoMap("items in the first byte index").toInt
       @tailrec
       def go(firstIndexesBlockTemp: Array[Byte])(countOfParsedItems: Int = 0,
-                                                 s: Seq[(Int, BigInt)] = Seq()): Map[Int, BigInt] = (firstIndexesBlockTemp, countOfParsedItems) match {
+                                                 s: Seq[(Int, BigInt)] = Seq.empty[(Int, BigInt)]): Map[Int, BigInt] = (firstIndexesBlockTemp, countOfParsedItems) match {
         case (_, count) if count == itemsInFirstByteIndex => s.toMap
         case (Array(), _) => Map()
         case (block, count) =>
@@ -141,10 +141,10 @@ object SxGeotoMongoParser {
 
     @tailrec
     final def parseFirstIp(firstIpBlockofBytes: Array[Byte])(countOfParsedItems: Int = 0,
-                                                             firstIpParsedSeq: Seq[String] = Seq()): Seq[String] = (firstIpBlockofBytes, countOfParsedItems) match {
+                                                             firstIpParsedSeq: Seq[String] = Seq.empty[String]): Seq[String] = (firstIpBlockofBytes, countOfParsedItems) match {
 
       case (_, count) if count == elemsInMainIndex => firstIpParsedSeq
-      case (Array(), _) => Seq()
+      case (Array(), _) => Seq.empty[String]
       case (block, count) =>
         parseFirstIp(block.drop(firstIpBlockLength))(count + 1, firstIpParsedSeq :+ decodeIP(block.take(firstIpBlockLength), firstIpBlockLength)())
 
@@ -155,6 +155,7 @@ object SxGeotoMongoParser {
   def parseAll(): Unit = {
 
     val byteArrayOfSxGeo: Array[Byte] = download()
+
     if (byteArrayOfSxGeo.isEmpty) {
       logger.error("Error getting downloaded data for SxGeo DB")
     }
@@ -175,12 +176,12 @@ object SxGeotoMongoParser {
       val firstIndx = FirstByteIndex(headerParsetoMap)
       val firstIndxParsetoMap: Map[Int, BigInt] = firstIndx.parseFirstIndexes(byteArrayOfSxGeo.slice(offsets.firstByteIndexStart,
         offsets.firstByteIndexStart + offsets.firstByteIndexEnd))
-      logger.info(s"Parsed first indexes of SxGeo DB: ${firstIndxParsetoMap}")
+      logger.info(s"Parsed first indexes of SxGeo DB: $firstIndxParsetoMap")
 
       // Парсинг Основного индекса
       val mainIndx = MainIndex(headerParsetoMap)
       val mainIndxParseIp: Seq[String] = mainIndx.parseFirstIp(byteArrayOfSxGeo.slice(offsets.mainIndxStart, offsets.mainIndxStart + offsets.mainIndexEnd))()
-      logger.info(s"Parsed main indexes of SxGeo DB: ${mainIndxParseIp}")
+      logger.info(s"Parsed main indexes of SxGeo DB: $mainIndxParseIp")
 
 
       // Парсинг соответствующих первым ip диапазонов с относящимися к ним городами, регионами и странами
@@ -227,164 +228,134 @@ object SxGeotoMongoParser {
       val blockofBytesContainigRegions: Array[Byte] = byteArrayOfSxGeo.slice(offsets.regionsStart, offsets.regionsStart + offsets.regionsEnd) // Блок байтов, содержащий регионы
       val blockofBytesContainingCountries: Array[Byte] = byteArrayOfSxGeo.slice(offsets.countriesStart, offsets.countriesStart + offsets.countriesEnd) // Блок байтов, содержащий страны
 
-
-      @tailrec
-      def parseCityStrs(cityStrsBlockofBytes: Array[Byte],
-                        countofStrs: Int = 0,
-                        cityStrsParsed: Seq[(String, String)] = Seq()): Seq[(String, String)] = (cityStrsBlockofBytes, countofStrs) match {
-
-        case (_, count) if count == countofCityStrs => cityStrsParsed
-        case (Array(), _) => Seq()
-        case (strsBlock, count) if count == 0 =>
-          parseCityStrs(strsBlock.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            cityStrsParsed :+ ("name_ru", new String(strsBlock.takeWhile(_ != "00".toByte), "UTF-8")))
-        case (strsBlock, count) if count == 1 =>
-          parseCityStrs(strsBlock.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            cityStrsParsed :+ ("name_en", new String(strsBlock.takeWhile(_ != "00".toByte), "UTF-8")))
-
-      }
-
-      @tailrec
-      def lenofCityBlock(cityBlockofBytes: Array[Byte],
-                         length: Int = 0,
-                         currentcountofCityStrs: Int = 0): Int = (cityBlockofBytes, currentcountofCityStrs) match {
-
-        case (_, count) if count == countofCityStrs =>  length
-        case (Array(), _) => 0
-        case (block, count) => lenofCityBlock(block.dropWhile(_ != "00".toByte).drop(1), length + block.takeWhile(_ != "00".toByte).length + 1, count + 1)
-
-      }
-
-      case class City(info: Seq[(String, String)] = Seq()) {
+      final case class City(info: Seq[(String, String)] =  Seq.empty[(String, String)]) {
         def toMap: Map[String, String] = info.toMap
-        def ++(other: City) = City(info ++ other.info)
-        def :+(elem: (String, String)) = City(info :+ elem)
+      }
+      final case class Region(info: Seq[(String, String)] =  Seq.empty[(String, String)]) {
+        def toMap: Map[String, String] = info.toMap
+      }
+      final case class Country(info: Seq[(String, String)] =  Seq.empty[(String, String)]) {
+        def toMap: Map[String, String] = info.toMap
       }
 
-      def parseCities(cityBlockofBytes: Array[Byte]): City = cityBlockofBytes match {
+      case class IpLocationInfo(ip: String = "", locationInfo: Map[String, Map[String, String]] = Map()) {
+        def toMap: Map[String, Map[String, Map[String, String]]] = Map(ip -> locationInfo)
+      }
+
+      def parseCityStrs3(cityStrsBlockofBytes: Array[Byte],
+                        cityStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] = {
+
+          val nameRuBlock = cityStrsBlockofBytes.takeWhile(_ != "00".toByte)
+          val nameEnBlock = cityStrsBlockofBytes.dropWhile(_ != "00".toByte).drop(1).takeWhile(_ != "00".toByte)
+          cityStrsParsed :+ ("name_ru" -> new String(nameRuBlock, "UTF-8")) :+ ("name_en" -> new String(nameEnBlock, "UTF-8"))
+
+      }
+
+      def lenofCityBlock3(cityBlockofBytes: Array[Byte],
+                         length: Int = 0,
+                         currentcountofCityStrs: Int = 0): Int = {
+
+          var length: Int = 0
+          var block = cityBlockofBytes
+          for (currentcountofCountryStrs <- 0 until countofCityStrs) {
+            length = length + block.takeWhile(_ != "00".toByte).length + 1
+            block = block.dropWhile(_ != "00".toByte).drop(1)
+          }
+          length
+
+      }
+
+      def parseCities3(cityBlockofBytes: Array[Byte]): City = cityBlockofBytes match {
 
         case Array() => City()
         case block =>
           val latBlockofBytes = block.slice(latCityStart, latCityEnd).reverse
           val latStr = if (latBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + latBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
-                       else java.lang.Long.decode("0x" + latBlockofBytes.map("%02x".format(_)).mkString("")).toString
+          else java.lang.Long.decode("0x" + latBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
           val lonBlockofBytes = block.slice(lonCityStart, lonCityEnd).reverse
           val lonStr = if (lonBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + lonBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
-                       else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
+          else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
-          City(parseCityStrs(block.slice(lonCityEnd, lonCityEnd + lenofCityBlock(block.slice(lonCityEnd, lonCityEnd + maxSizeofCityStr))))) :+
-            ("region_seek", java.lang.Long.decode("0x" + block.take(regionseekSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
-            ("country_id", java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity, regionseekSizeforCity + countryidSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
-            ("id", java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity + countryidSizeforCity, regionseekSizeforCity + countryidSizeforCity + idCitySize).reverse.map("%02x".format(_)).mkString("")).toString) :+
-            ("lat", latStr.patch(latStr.length - 5, ".", 0)) :+
-            ("lon", lonStr.patch(lonStr.length - 5, ".", 0))
-
-      }
-
-      @tailrec
-      def parseRegionStrs(regionStrsBlockofBytes: Array[Byte],
-                          countofStrs: Int = 0,
-                          regionStrsParsed: Seq[(String, String)] = Seq()): Seq[(String, String)] = (regionStrsBlockofBytes, countofStrs) match {
-
-        case (_, count) if count == countofRegionStrs => regionStrsParsed
-        case (Array(), _) => Seq()
-        case (strsBlock, count) if count == 0 =>
-          parseRegionStrs(strsBlock.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            regionStrsParsed :+ ("name_ru" , new String(strsBlock.takeWhile(_ != "00".toByte), "UTF-8")))
-        case (strsBlock, count) if count == 1 =>
-          parseRegionStrs(strsBlock.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            regionStrsParsed :+ ("name_en" , new String(strsBlock.takeWhile(_ != "00".toByte), "UTF-8")))
-        case (strsBlock, count) if count == 2 =>
-          parseRegionStrs(strsBlock.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            regionStrsParsed :+ ("iso" , new String(strsBlock.takeWhile(_ != "00".toByte), "UTF-8")))
+          City(parseCityStrs3(block.slice(lonCityEnd, lonCityEnd + lenofCityBlock3(block.slice(lonCityEnd, lonCityEnd + maxSizeofCityStr)))) :+
+            ("region_seek" -> java.lang.Long.decode("0x" + block.take(regionseekSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
+            ("country_id" -> java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity, regionseekSizeforCity + countryidSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
+            ("id" -> java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity + countryidSizeforCity, regionseekSizeforCity + countryidSizeforCity + idCitySize).reverse.map("%02x".format(_)).mkString("")).toString) :+
+            ("lat" -> latStr.patch(latStr.length - 5, ".", 0)) :+
+            ("lon" -> lonStr.patch(lonStr.length - 5, ".", 0)))
 
       }
 
-      @tailrec
-      def lenofRegionBlock(regionBlockofBytes: Array[Byte],
-                           length: Int = 0,
-                           currentcountofRegionStrs: Int = 0): Int = (regionBlockofBytes, currentcountofRegionStrs) match {
-
-        case (_, count) if count == countofRegionStrs =>  length
-        case (Array(), _) => 0
-        case (block, count) => lenofRegionBlock(block.dropWhile(_ != "00".toByte).drop(1), length + block.takeWhile(_ != "00".toByte).length + 1, count + 1)
+      def parseRegionStrs3(regionStrsBlockofBytes: Array[Byte],
+                           regionStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] =  {
+          val nameRuBlock = regionStrsBlockofBytes.takeWhile(_ != "00".toByte)
+          val startforNameEnBlock = regionStrsBlockofBytes.dropWhile(_ != "00".toByte).drop(1)
+          val nameEnBlock = startforNameEnBlock.takeWhile(_ != "00".toByte)
+          val isoBlock = startforNameEnBlock.dropWhile(_ != "00".toByte).drop(1).takeWhile(_ != "00".toByte)
+          regionStrsParsed :+ ("name_ru" , new String(nameRuBlock, "UTF-8")) :+
+                              ("name_en" , new String(nameEnBlock, "UTF-8")) :+
+                              ("iso" , new String(isoBlock, "UTF-8"))
 
       }
 
+      def lenofRegionBlock3(regionBlockofBytes: Array[Byte]): Int = {
 
-      case class Region(info: Seq[(String, String)] = Seq()) {
-        def toMap: Map[String, String] = info.toMap
-        def ++(other: Region) = Region(info ++ other.info)
-        def :+(elem: (String, String)) = Region(info :+ elem)
+          var length: Int = 0
+          var block = regionBlockofBytes
+          for (currentcountofCountryStrs <- 0 until countofRegionStrs) {
+            length = length + block.takeWhile(_ != "00".toByte).length + 1
+            block = block.dropWhile(_ != "00".toByte).drop(1)
+          }
+          length
+
       }
 
-      def parseRegions(regionBlockofBytes: Array[Byte]): Region = regionBlockofBytes match {
+      def parseRegions3(regionBlockofBytes: Array[Byte]): Region = regionBlockofBytes match {
 
         case Array() => Region()
         case block =>
-          Region(parseRegionStrs(block.slice(countrySeekSize + idRegionSize,
-            countrySeekSize + idRegionSize + lenofRegionBlock(block.slice(countrySeekSize + idRegionSize,
-            countrySeekSize + idRegionSize + maxSizeofRegionStr))))) :+
-            ("country_seek", java.lang.Long.decode("0x" + block.take(countrySeekSize).reverse.map("%02x".format(_)).mkString("")).toString) :+
-            ("id", java.lang.Long.decode("0x" + block.slice(countrySeekSize, countrySeekSize + idRegionSize).reverse.map("%02x".format(_)).mkString("")).toString)
+          Region(parseRegionStrs3(block.slice(countrySeekSize + idRegionSize,
+            countrySeekSize + idRegionSize + lenofRegionBlock3(block.slice(countrySeekSize + idRegionSize,
+              countrySeekSize + idRegionSize + maxSizeofRegionStr)))) :+
+            ("country_seek" -> java.lang.Long.decode("0x" + block.take(countrySeekSize).reverse.map("%02x".format(_)).mkString("")).toString) :+
+            ("id" -> java.lang.Long.decode("0x" + block.slice(countrySeekSize, countrySeekSize + idRegionSize).reverse.map("%02x".format(_)).mkString("")).toString))
 
       }
 
-      @tailrec
-      def parseCountryStrs(countryStrsBlockofBytes: Array[Byte],
-                           countofStrs: Int = 0,
-                           countryStrsParsed: Seq[(String, String)] = Seq()): Seq[(String, String)] = (countryStrsBlockofBytes, countofStrs) match {
+      def parseCountryStrs3(countryStrsBlockofBytes: Array[Byte],
+                           countryStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] = {
 
-        case (_, count) if count == countofCountryStrs => countryStrsParsed
-        case (Array(), _) => Seq()
-        case (block, count) if count == 0 =>
-          parseCountryStrs(block.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            countryStrsParsed :+ ("name_ru" -> new String(block.takeWhile(_ != "00".toByte), "UTF-8")))
-        case (block, count) if count == 1 =>
-          parseCountryStrs(block.dropWhile(_ != "00".toByte).drop(1),
-            count + 1,
-            countryStrsParsed :+ ("name_en" -> new String(block.takeWhile(_ != "00".toByte), "UTF-8")))
+        val nameRuBlock = countryStrsBlockofBytes.takeWhile(_ != "00".toByte)
+        val nameEnBlock = countryStrsBlockofBytes.dropWhile(_ != "00".toByte).drop(1).takeWhile(_ != "00".toByte)
+        countryStrsParsed :+ ("name_ru" -> new String(nameRuBlock, "UTF-8")) :+ ("name_en" -> new String(nameEnBlock, "UTF-8"))
 
       }
 
-      @tailrec
-      def lenofCountryBlock(countryBlockofBytes: Array[Byte],
-                            length: Int = 0,
-                            currentcountofCountryStrs: Int = 0): Int = (countryBlockofBytes, currentcountofCountryStrs) match {
+      def lenofCountryBlock3(countryBlockofBytes: Array[Byte]): Int =  {
 
-        case (_, count) if count == countofCountryStrs =>  length
-        case (Array(), _) => 0
-        case (block, count) => lenofCountryBlock(block.dropWhile(_ != "00".toByte).drop(1), length + block.takeWhile(_ != "00".toByte).length + 1, count + 1)
+        var length: Int = 0
+        var block = countryBlockofBytes
+        for (currentcountofCountryStrs <- 0 until countofCountryStrs) {
+          length = length + block.takeWhile(_ != "00".toByte).length + 1
+          block = block.dropWhile(_ != "00".toByte).drop(1)
+        }
+        length
 
       }
 
-
-      case class Country(info: Seq[(String, String)] = Seq()) {
-        def toMap: Map[String, String] = info.toMap
-        def ++(other: Country) = Country(info ++ other.info)
-        def :+(elem: (String, String)) = Country(info :+ elem)
-      }
-
-      def parseCountries(countryBlockofBytes: Array[Byte]): Country = countryBlockofBytes match {
+      def parseCountries3(countryBlockofBytes: Array[Byte]): Country = countryBlockofBytes match {
 
         case Array() => Country()
         case block =>
           val latBlockofBytes = block.slice(latCountryStart, latCountryEnd).reverse
           val latStr = if (latBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + latBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
-                       else java.lang.Long.decode("0x" + latBlockofBytes.map("%02x".format(_)).mkString("")).toString
+          else java.lang.Long.decode("0x" + latBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
           val lonBlockofBytes = block.slice(lonCountryStart, lonCountryEnd).reverse
           val lonStr = if (lonBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + lonBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
-                       else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
+          else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
-          Country(parseCountryStrs(block.slice(lonCountryEnd, lonCountryEnd + lenofCountryBlock(block.slice(lonCountryEnd, lonCountryEnd + maxSizeofCountryStr)))) :+
+          Country(parseCountryStrs3(block.slice(lonCountryEnd, lonCountryEnd + lenofCountryBlock3(block.slice(lonCountryEnd, lonCountryEnd + maxSizeofCountryStr)))) :+
             ("id" -> java.lang.Long.decode("0x" + block.take(idCountrySize).reverse.map("%02x".format(_)).mkString("")).toString) :+
             ("iso" -> new String(block.slice(idCountrySize, idCountrySize + isoCountrySize), "UTF-8")) :+
             ("lat" -> latStr.patch(latStr.length - 2, ".", 0)) :+
@@ -392,95 +363,110 @@ object SxGeotoMongoParser {
 
       }
 
-      case class IpLocationInfo(ip: String = "", locationInfo: Map[String, Map[String, String]] = Map()) {
-        def toMap: Map[String, Map[String, Map[String, String]]] = Map(ip -> locationInfo)
-      }
 
       @tailrec
-      def parseRangesID(rangesBlockofBytes: Array[Byte],
-                        firstOctetOfIP: Byte,
-                        countOfParsedIPsInOneRange: Int = 0,
-                        parsedRanges: Seq[IpLocationInfo] = Seq()): Seq[IpLocationInfo] = (rangesBlockofBytes, countOfParsedIPsInOneRange) match {
+      def makeSeqOfCurrAndNextBlocksfromArray(arrayofBytes: Array[Byte],
+                                              lengthOfOneElemOfSeq: Int,
+                                              resultingSeqOfCurrAndNextBlocks: Seq[(Array[Byte], Array[Byte])] = Seq.empty[(Array[Byte], Array[Byte])]): Seq[(Array[Byte], Array[Byte])] =
+        arrayofBytes match {
+          case Array() => resultingSeqOfCurrAndNextBlocks
+          case currentBlock => makeSeqOfCurrAndNextBlocksfromArray(currentBlock.drop(lengthOfOneElemOfSeq),
+            lengthOfOneElemOfSeq,
+            resultingSeqOfCurrAndNextBlocks :+ (currentBlock.take(lengthOfOneElemOfSeq) -> currentBlock.slice(lengthOfOneElemOfSeq, lengthOfOneElemOfSeq + lengthOfOneElemOfSeq)))
+      }
 
-        case (_, count) if count == countofRangesforOneFirstIP => parsedRanges
-        case (Array(), _) => Seq()
-        case (block, count) =>
-          val id = java.lang.Long.decode("0x" + block.slice(rangeBlockLength, rangeBlockLength + idBlockSizeinBytes).map("%02x".format(_)).mkString(""))
-          if (id < sizeofDirectoryofCountries) {
-            val countrySeek = id.toInt
-            val country: Map[String, String] = parseCountries(blockofBytesContainingCountries.drop(countrySeek)).toMap
+      def parseRangesID3(sequenceOfRangeBlocks: Seq[(Array[Byte], Array[Byte])], firstOctetOfIP: Byte): Seq[IpLocation] = {
 
-            parseRangesID(block.drop(rangeBlockLength + idBlockSizeinBytes),
-              firstOctetOfIP,
-              count + 1,
-              parsedRanges :+ IpLocationInfo(ip = java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." + decodeIP(block.take(rangeBlockLength), rangeBlockLength)(),
-                locationInfo = Map("country" -> country)))
+        def makeIpLocationFromCurrAndNextBlock(currAndnextBlocks: (Array[Byte], Array[Byte])): IpLocation = {
+
+          val currentIP = java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." +
+            decodeIP(currAndnextBlocks._1.take(rangeBlockLength), rangeBlockLength)()
+          val nextIP = if (currAndnextBlocks._2.nonEmpty) {
+            java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." +
+              decodeIP(currAndnextBlocks._2.take(rangeBlockLength), rangeBlockLength)()
+          } else {
+            ""
           }
-          else {
+          val id = java.lang.Long.decode("0x" + currAndnextBlocks._1.slice(rangeBlockLength,
+            rangeBlockLength + idBlockSizeinBytes).map("%02x".format(_)).mkString(""))
+          val fromIpinRange: (String, Long) = getIPstringIPint(currentIP)
+          val toIpinRange: (String, Long) = if (nextIP != "") {
+            getIPstringIPint(nextIP)
+          } else {
+            getIPstringIPint(currentIP.split('.')(0) + ".255.255.255")
+          }
+
+          if (id < sizeofDirectoryofCountries) {
+
+            val countrySeek = id.toInt
+            val country: Map[String, String] = parseCountries3(blockofBytesContainingCountries.drop(countrySeek)).toMap
+            IpLocation(fromIpinRange._1 + "-" + toIpinRange._1,
+                       fromIpinRange._1,
+                       fromIpinRange._2,
+                       toIpinRange._1,
+                       toIpinRange._2,
+                       Map("country" -> country))
+
+          } else {
 
             val citySeek: Int = (id - sizeofDirectoryofCountries).toInt
-            val city: Map[String, String] = parseCities(blockofBytesContainingCities.drop(citySeek)).toMap
+            val city: Map[String, String] = parseCities3(blockofBytesContainingCities.drop(citySeek)).toMap
             val regionSeek: Int = city("region_seek").toInt
-            val region: Map[String, String] = parseRegions(blockofBytesContainigRegions.drop(regionSeek)).toMap
+            val region: Map[String, String] = parseRegions3(blockofBytesContainigRegions.drop(regionSeek)).toMap
             val countrySeek: Int = region("country_seek").toInt
-            val country: Map[String, String] = parseCountries(blockofBytesContainingCountries.drop(countrySeek)).toMap
+            val country: Map[String, String] = parseCountries3(blockofBytesContainingCountries.drop(countrySeek)).toMap
+            IpLocation(fromIpinRange._1 + "-" + toIpinRange._1,
+                       fromIpinRange._1,
+                       fromIpinRange._2,
+                       toIpinRange._1,
+                       toIpinRange._2,
+                       Map("city" -> city, "region" -> region, "country" -> country))
 
-            parseRangesID(block.drop(rangeBlockLength + idBlockSizeinBytes),
-              firstOctetOfIP,
-              count + 1,
-              parsedRanges :+ IpLocationInfo(ip = java.lang.Long.decode("0x" + "%02x".format(firstOctetOfIP)).toString + "." + decodeIP(block.take(rangeBlockLength), rangeBlockLength)(),
-                locationInfo = Map("city" -> city, "region" -> region, "country" -> country)))
           }
+
+        }
+
+        sequenceOfRangeBlocks.map(makeIpLocationFromCurrAndNextBlock)
 
       }
 
-      @tailrec
-      def parseBD(mainIndexBlockofBytes: Array[Byte], rangesBlockofBytes: Array[Byte])
-                 (countOfParsedElemsInMainIndex: Int = 0,
-                  parsedIpLocations: Seq[IpLocationInfo] = Seq()): Seq[IpLocationInfo] = (mainIndexBlockofBytes, rangesBlockofBytes, countOfParsedElemsInMainIndex) match {
+      def parseBD3(mainIndexBlockofBytes: Array[Byte], rangesBlockofBytes: Array[Byte], countOfParsedElemsInMainIndex: Int = 0): Unit = {
 
-        case (_, _, count) if count == elemsInMainIndex => parsedIpLocations
-        case (Array(), _, _) => Seq()
-        case (Array(), Array(), _) => Seq()
-        case (currentMainIndexBlock, currentRangesBlock, count) => {
+        var mainBlock = mainIndexBlockofBytes
+        var rangesBlock = rangesBlockofBytes
+
+        for (count <- countOfParsedElemsInMainIndex until elemsInMainIndex if mainBlock.nonEmpty && rangesBlock.nonEmpty) {
+
           val sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss")
-          val timeBeforeParsing = new Date(System.currentTimeMillis)
-          logger.info(s"For ranges starting with ${currentMainIndexBlock(0)}, time before parsing = ${sdf.format(timeBeforeParsing)}")
-          val newparsedIpLocations: Seq[IpLocationInfo] = parseRangesID(currentRangesBlock.take(sizeofRangesforOneFirstIP), currentMainIndexBlock(0))
-          val timeAfterParsing = new Date(System.currentTimeMillis)
-          logger.info(s"For ranges starting with ${currentMainIndexBlock(0)}, time after parsing = ${sdf.format(timeAfterParsing)}")
 
-          @tailrec
-          def addToDB(parsedIpLocations: Seq[IpLocationInfo]): Boolean = parsedIpLocations match {
-            case Seq() => true
-            case currentParsedIpLocation :: remainingParsedIpLocations =>
-              val fromIpinRange: (String, Long) = getIPstringIPint(currentParsedIpLocation.ip)
-              val toIpinRange: (String, Long) = if (remainingParsedIpLocations.nonEmpty) {
-                 if (remainingParsedIpLocations.head.ip != "") getIPstringIPint(remainingParsedIpLocations.head.ip)
-                 else getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
-              } else {
-                getIPstringIPint(currentParsedIpLocation.ip.split('.')(0) + ".255.255.255")
-              }
-              val doctoSavetoDB: IpLocation = IpLocation(fromIpinRange._1 + "-" + toIpinRange._1, fromIpinRange._1, fromIpinRange._2, toIpinRange._1, toIpinRange._2, currentParsedIpLocation.locationInfo)
-              collection.insertOne(doctoSavetoDB).toFuture().onComplete {
-                case Failure(e) =>
-                  logger.error(e.toString + " Error inserting to Mongo DB: ip = " + currentParsedIpLocation.ip + " location = " + currentParsedIpLocation.locationInfo)
-                case Success(obj) =>
-                  logger.info(s"$obj was successfully inserted to Mongo DB: ID/IP = ${doctoSavetoDB._id} Location = ${doctoSavetoDB.Location}")
-              }
-              addToDB(remainingParsedIpLocations)
-            case _ => false
+          val sequenceOfRangeBlocks: Seq[(Array[Byte], Array[Byte])] = makeSeqOfCurrAndNextBlocksfromArray(rangesBlock.take(sizeofRangesforOneFirstIP),
+                                                                                                           rangeBlockLength + idBlockSizeinBytes)
+          val timeBeforeParsing3 = new Date(System.currentTimeMillis)
+          logger.info(s"***FOR3***:\nFor ranges starting with ${mainBlock(0)}, time before parsing = ${sdf.format(timeBeforeParsing3)}")
+          val newparsedIpLocations3: Seq[IpLocation] = parseRangesID3(sequenceOfRangeBlocks, mainBlock(0))
+          val timeAfterParsing3 = new Date(System.currentTimeMillis)
+          logger.info(s"***FOR3***:\nFor ranges starting with ${mainBlock(0)}, time after parsing = ${sdf.format(timeAfterParsing3)}")
+
+          val timeBeforeInserting3 = new Date(System.currentTimeMillis)
+          logger.info(s"***Insert3***:\nFor ranges starting with ${mainBlock(0)}, time before inserting = ${sdf.format(timeBeforeInserting3)}")
+          collection.insertMany(newparsedIpLocations3).toFuture().onComplete {
+            case Failure(e) =>
+              logger.error(e.toString)
+            case Success(obj) =>
+              //logger.info(s"$obj was successfully inserted to Mongo DB")
+
           }
-          addToDB(newparsedIpLocations)
+          val timeAfterInserting3 = new Date(System.currentTimeMillis)
+          logger.info(s"***Inseerting3***:\nFor ranges starting with ${mainBlock(0)}, time after inserting = ${sdf.format(timeAfterInserting3)}")
 
-          parseBD(currentMainIndexBlock.drop(firstIPsize), currentRangesBlock.drop(sizeofRangesforOneFirstIP))(count + 1, parsedIpLocations ++ newparsedIpLocations)
+          mainBlock = mainBlock.drop(firstIPsize)
+          rangesBlock = rangesBlock.drop(sizeofRangesforOneFirstIP)
+
         }
 
       }
-      parseBD(byteArrayOfSxGeo.slice(offsets.mainIndxStart,
-        offsets.mainIndxStart + offsets.mainIndexEnd),
-        byteArrayOfSxGeo.slice(offsets.rangesStart,
-          offsets.rangesStart + offsets.rangesEnd))()
+      parseBD3(byteArrayOfSxGeo.slice(offsets.mainIndxStart, offsets.mainIndxStart + offsets.mainIndexEnd),
+        byteArrayOfSxGeo.slice(offsets.rangesStart, offsets.rangesStart + offsets.rangesEnd))
 
     }
 

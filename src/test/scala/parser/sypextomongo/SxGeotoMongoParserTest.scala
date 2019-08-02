@@ -6,17 +6,17 @@ import parser.sypextomongo.SxGeotoMongoParser.Header
 
 class SxGeotoMongoParserTest extends FunSuite with Matchers {
 
-  val expectedValueforTestHeaderParsetoMap: Map[String, String] =Map("number of ranges" -> "4946051",
+  val expectedValueforTestHeaderParsetoMap: Map[String, String] =Map("number of ranges" -> "4946066",
     "size description of the packing format of the city / region / country" -> "157",
     "blocks in one index entry" -> "2785", "id block size in bytes" -> "3", "parser" -> "3", "encoding" -> "0", "maximum size of country record" -> "147",
-    "time of creation" -> "2019-05-27T19:36:51.000+03:00", "version" -> "22", "the size of the directory of countries" -> "9387", "id" -> "SxG",
+    "time of creation" -> "2019-05-31T19:49:56.000+03:00", "version" -> "22", "the size of the directory of countries" -> "9387", "id" -> "SxG",
     "maximum size of a region record" -> "175", "items in the first byte index" -> "224", "maximum size of city record" -> "127", "items in the main index" -> "1775",
     "the size of the directory of cities" -> "2625678", "the size of the directory of regions" -> "109102")
 
-  val expectedValueforTestHeaderParsetoMapforTravis: Map[String, String] =Map("number of ranges" -> "4946051",
+  val expectedValueforTestHeaderParsetoMapforTravis: Map[String, String] =Map("number of ranges" -> "4946066",
     "size description of the packing format of the city / region / country" -> "157",
     "blocks in one index entry" -> "2785", "id block size in bytes" -> "3", "parser" -> "3", "encoding" -> "0", "maximum size of country record" -> "147",
-    "time of creation" -> "2019-05-27T19:36:51.000Z", "version" -> "22", "the size of the directory of countries" -> "9387", "id" -> "SxG",
+    "time of creation" -> "2019-05-31T19:49:56.000Z", "version" -> "22", "the size of the directory of countries" -> "9387", "id" -> "SxG",
     "maximum size of a region record" -> "175", "items in the first byte index" -> "224", "maximum size of city record" -> "127", "items in the main index" -> "1775",
     "the size of the directory of cities" -> "2625678", "the size of the directory of regions" -> "109102")
 
