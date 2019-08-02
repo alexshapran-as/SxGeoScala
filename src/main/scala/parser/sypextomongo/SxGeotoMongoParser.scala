@@ -242,7 +242,7 @@ object SxGeotoMongoParser {
         def toMap: Map[String, Map[String, Map[String, String]]] = Map(ip -> locationInfo)
       }
 
-      def parseCityStrs3(cityStrsBlockofBytes: Array[Byte],
+      def parseCityStrs(cityStrsBlockofBytes: Array[Byte],
                         cityStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] = {
 
           val nameRuBlock = cityStrsBlockofBytes.takeWhile(_ != "00".toByte)
@@ -251,7 +251,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def lenofCityBlock3(cityBlockofBytes: Array[Byte],
+      def lenofCityBlock(cityBlockofBytes: Array[Byte],
                          length: Int = 0,
                          currentcountofCityStrs: Int = 0): Int = {
 
@@ -265,7 +265,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def parseCities3(cityBlockofBytes: Array[Byte]): City = cityBlockofBytes match {
+      def parseCities(cityBlockofBytes: Array[Byte]): City = cityBlockofBytes match {
 
         case Array() => City()
         case block =>
@@ -277,7 +277,7 @@ object SxGeotoMongoParser {
           val lonStr = if (lonBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + lonBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
           else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
-          City(parseCityStrs3(block.slice(lonCityEnd, lonCityEnd + lenofCityBlock3(block.slice(lonCityEnd, lonCityEnd + maxSizeofCityStr)))) :+
+          City(parseCityStrs(block.slice(lonCityEnd, lonCityEnd + lenofCityBlock(block.slice(lonCityEnd, lonCityEnd + maxSizeofCityStr)))) :+
             ("region_seek" -> java.lang.Long.decode("0x" + block.take(regionseekSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
             ("country_id" -> java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity, regionseekSizeforCity + countryidSizeforCity).reverse.map("%02x".format(_)).mkString("")).toString) :+
             ("id" -> java.lang.Long.decode("0x" + block.slice(regionseekSizeforCity + countryidSizeforCity, regionseekSizeforCity + countryidSizeforCity + idCitySize).reverse.map("%02x".format(_)).mkString("")).toString) :+
@@ -286,7 +286,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def parseRegionStrs3(regionStrsBlockofBytes: Array[Byte],
+      def parseRegionStrs(regionStrsBlockofBytes: Array[Byte],
                            regionStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] =  {
           val nameRuBlock = regionStrsBlockofBytes.takeWhile(_ != "00".toByte)
           val startforNameEnBlock = regionStrsBlockofBytes.dropWhile(_ != "00".toByte).drop(1)
@@ -298,7 +298,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def lenofRegionBlock3(regionBlockofBytes: Array[Byte]): Int = {
+      def lenofRegionBlock(regionBlockofBytes: Array[Byte]): Int = {
 
           var length: Int = 0
           var block = regionBlockofBytes
@@ -310,19 +310,19 @@ object SxGeotoMongoParser {
 
       }
 
-      def parseRegions3(regionBlockofBytes: Array[Byte]): Region = regionBlockofBytes match {
+      def parseRegions(regionBlockofBytes: Array[Byte]): Region = regionBlockofBytes match {
 
         case Array() => Region()
         case block =>
-          Region(parseRegionStrs3(block.slice(countrySeekSize + idRegionSize,
-            countrySeekSize + idRegionSize + lenofRegionBlock3(block.slice(countrySeekSize + idRegionSize,
+          Region(parseRegionStrs(block.slice(countrySeekSize + idRegionSize,
+            countrySeekSize + idRegionSize + lenofRegionBlock(block.slice(countrySeekSize + idRegionSize,
               countrySeekSize + idRegionSize + maxSizeofRegionStr)))) :+
             ("country_seek" -> java.lang.Long.decode("0x" + block.take(countrySeekSize).reverse.map("%02x".format(_)).mkString("")).toString) :+
             ("id" -> java.lang.Long.decode("0x" + block.slice(countrySeekSize, countrySeekSize + idRegionSize).reverse.map("%02x".format(_)).mkString("")).toString))
 
       }
 
-      def parseCountryStrs3(countryStrsBlockofBytes: Array[Byte],
+      def parseCountryStrs(countryStrsBlockofBytes: Array[Byte],
                            countryStrsParsed: Seq[(String, String)] =  Seq.empty[(String, String)]): Seq[(String, String)] = {
 
         val nameRuBlock = countryStrsBlockofBytes.takeWhile(_ != "00".toByte)
@@ -331,7 +331,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def lenofCountryBlock3(countryBlockofBytes: Array[Byte]): Int =  {
+      def lenofCountryBlock(countryBlockofBytes: Array[Byte]): Int =  {
 
         var length: Int = 0
         var block = countryBlockofBytes
@@ -343,7 +343,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def parseCountries3(countryBlockofBytes: Array[Byte]): Country = countryBlockofBytes match {
+      def parseCountries(countryBlockofBytes: Array[Byte]): Country = countryBlockofBytes match {
 
         case Array() => Country()
         case block =>
@@ -355,7 +355,7 @@ object SxGeotoMongoParser {
           val lonStr = if (lonBlockofBytes(0).toInt == -1) "-" + java.lang.Long.decode("0x" + lonBlockofBytes.map(x => "%02x".format(~x).replaceAll("ff", "")).mkString("")).toString
           else java.lang.Long.decode("0x" + lonBlockofBytes.map("%02x".format(_)).mkString("")).toString
 
-          Country(parseCountryStrs3(block.slice(lonCountryEnd, lonCountryEnd + lenofCountryBlock3(block.slice(lonCountryEnd, lonCountryEnd + maxSizeofCountryStr)))) :+
+          Country(parseCountryStrs(block.slice(lonCountryEnd, lonCountryEnd + lenofCountryBlock(block.slice(lonCountryEnd, lonCountryEnd + maxSizeofCountryStr)))) :+
             ("id" -> java.lang.Long.decode("0x" + block.take(idCountrySize).reverse.map("%02x".format(_)).mkString("")).toString) :+
             ("iso" -> new String(block.slice(idCountrySize, idCountrySize + isoCountrySize), "UTF-8")) :+
             ("lat" -> latStr.patch(latStr.length - 2, ".", 0)) :+
@@ -375,7 +375,7 @@ object SxGeotoMongoParser {
             resultingSeqOfCurrAndNextBlocks :+ (currentBlock.take(lengthOfOneElemOfSeq) -> currentBlock.slice(lengthOfOneElemOfSeq, lengthOfOneElemOfSeq + lengthOfOneElemOfSeq)))
       }
 
-      def parseRangesID3(sequenceOfRangeBlocks: Seq[(Array[Byte], Array[Byte])], firstOctetOfIP: Byte): Seq[IpLocation] = {
+      def parseRangesID(sequenceOfRangeBlocks: Seq[(Array[Byte], Array[Byte])], firstOctetOfIP: Byte): Seq[IpLocation] = {
 
         def makeIpLocationFromCurrAndNextBlock(currAndnextBlocks: (Array[Byte], Array[Byte])): IpLocation = {
 
@@ -399,7 +399,7 @@ object SxGeotoMongoParser {
           if (id < sizeofDirectoryofCountries) {
 
             val countrySeek = id.toInt
-            val country: Map[String, String] = parseCountries3(blockofBytesContainingCountries.drop(countrySeek)).toMap
+            val country: Map[String, String] = parseCountries(blockofBytesContainingCountries.drop(countrySeek)).toMap
             IpLocation(fromIpinRange._1 + "-" + toIpinRange._1,
                        fromIpinRange._1,
                        fromIpinRange._2,
@@ -410,11 +410,11 @@ object SxGeotoMongoParser {
           } else {
 
             val citySeek: Int = (id - sizeofDirectoryofCountries).toInt
-            val city: Map[String, String] = parseCities3(blockofBytesContainingCities.drop(citySeek)).toMap
+            val city: Map[String, String] = parseCities(blockofBytesContainingCities.drop(citySeek)).toMap
             val regionSeek: Int = city("region_seek").toInt
-            val region: Map[String, String] = parseRegions3(blockofBytesContainigRegions.drop(regionSeek)).toMap
+            val region: Map[String, String] = parseRegions(blockofBytesContainigRegions.drop(regionSeek)).toMap
             val countrySeek: Int = region("country_seek").toInt
-            val country: Map[String, String] = parseCountries3(blockofBytesContainingCountries.drop(countrySeek)).toMap
+            val country: Map[String, String] = parseCountries(blockofBytesContainingCountries.drop(countrySeek)).toMap
             IpLocation(fromIpinRange._1 + "-" + toIpinRange._1,
                        fromIpinRange._1,
                        fromIpinRange._2,
@@ -430,7 +430,7 @@ object SxGeotoMongoParser {
 
       }
 
-      def parseBD3(mainIndexBlockofBytes: Array[Byte], rangesBlockofBytes: Array[Byte], countOfParsedElemsInMainIndex: Int = 0): Unit = {
+      def parseBD(mainIndexBlockofBytes: Array[Byte], rangesBlockofBytes: Array[Byte], countOfParsedElemsInMainIndex: Int = 0): Unit = {
 
         var mainBlock = mainIndexBlockofBytes
         var rangesBlock = rangesBlockofBytes
@@ -441,23 +441,23 @@ object SxGeotoMongoParser {
 
           val sequenceOfRangeBlocks: Seq[(Array[Byte], Array[Byte])] = makeSeqOfCurrAndNextBlocksfromArray(rangesBlock.take(sizeofRangesforOneFirstIP),
                                                                                                            rangeBlockLength + idBlockSizeinBytes)
-          val timeBeforeParsing3 = new Date(System.currentTimeMillis)
-          logger.info(s"***FOR3***:\nFor ranges starting with ${mainBlock(0)}, time before parsing = ${sdf.format(timeBeforeParsing3)}")
-          val newparsedIpLocations3: Seq[IpLocation] = parseRangesID3(sequenceOfRangeBlocks, mainBlock(0))
-          val timeAfterParsing3 = new Date(System.currentTimeMillis)
-          logger.info(s"***FOR3***:\nFor ranges starting with ${mainBlock(0)}, time after parsing = ${sdf.format(timeAfterParsing3)}")
+          val timeBeforeParsing = new Date(System.currentTimeMillis)
+          logger.info(s"For ranges starting with ${mainBlock(0)}, time before parsing = ${sdf.format(timeBeforeParsing)}")
+          val newparsedIpLocations: Seq[IpLocation] = parseRangesID(sequenceOfRangeBlocks, mainBlock(0))
+          val timeAfterParsing = new Date(System.currentTimeMillis)
+          logger.info(s"For ranges starting with ${mainBlock(0)}, time after parsing = ${sdf.format(timeAfterParsing)}")
 
-          val timeBeforeInserting3 = new Date(System.currentTimeMillis)
-          logger.info(s"***Insert3***:\nFor ranges starting with ${mainBlock(0)}, time before inserting = ${sdf.format(timeBeforeInserting3)}")
-          collection.insertMany(newparsedIpLocations3).toFuture().onComplete {
+          val timeBeforeInserting = new Date(System.currentTimeMillis)
+          logger.info(s"For ranges starting with ${mainBlock(0)}, time before inserting = ${sdf.format(timeBeforeInserting)}")
+          collection.insertMany(newparsedIpLocations).toFuture().onComplete {
             case Failure(e) =>
               logger.error(e.toString)
             case Success(obj) =>
-              //logger.info(s"$obj was successfully inserted to Mongo DB")
+              logger.info(s"$obj was successfully inserted to Mongo DB")
 
           }
-          val timeAfterInserting3 = new Date(System.currentTimeMillis)
-          logger.info(s"***Inseerting3***:\nFor ranges starting with ${mainBlock(0)}, time after inserting = ${sdf.format(timeAfterInserting3)}")
+          val timeAfterInserting = new Date(System.currentTimeMillis)
+          logger.info(s"For ranges starting with ${mainBlock(0)}, time after inserting = ${sdf.format(timeAfterInserting)}")
 
           mainBlock = mainBlock.drop(firstIPsize)
           rangesBlock = rangesBlock.drop(sizeofRangesforOneFirstIP)
@@ -465,7 +465,7 @@ object SxGeotoMongoParser {
         }
 
       }
-      parseBD3(byteArrayOfSxGeo.slice(offsets.mainIndxStart, offsets.mainIndxStart + offsets.mainIndexEnd),
+      parseBD(byteArrayOfSxGeo.slice(offsets.mainIndxStart, offsets.mainIndxStart + offsets.mainIndexEnd),
         byteArrayOfSxGeo.slice(offsets.rangesStart, offsets.rangesStart + offsets.rangesEnd))
 
     }
