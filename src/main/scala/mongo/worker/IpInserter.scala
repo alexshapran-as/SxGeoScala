@@ -23,7 +23,7 @@ object IpInserter {
     collection.find(equal("_id", xmlRequest._id)).toFuture().map {
       data =>
        if (data.nonEmpty) {
-         logger.error("Ошибка вставки в Mongo DB: данная запись уже имеется в базе")
+         logger.error("Insert error in Mongo DB: this record already exists in the database")
          Left(errorJson("Ошибка вставки в Mongo DB: данная запись уже имеется в базе"))
        } else {
          Right("Возможна вставка записи в Mongo DB")
@@ -38,11 +38,11 @@ object IpInserter {
         collection.insertOne(ipLocation).headOption().collect {
           case data => data match {
             case Some(_) => {
-              logger.info(s"Запись ${pretty(render(xmlRequest.Location("Location")))} была упешно вставлена в базу Mongo DB")
+              logger.info(s"Record ${pretty(render(xmlRequest.Location("Location")))} was successfully added to Mongo DB database")
               Right(pretty(render(Map("success" -> "true")) merge render(Map("result" -> xmlRequest.Location("Location")))))
             }
             case None => {
-              logger.error("Ошибка вставки в Mongo DB")
+              logger.error("Insert Error in Mongo DB")
               Left(errorJson("Ошибка вставки в Mongo DB"))
             }
           }

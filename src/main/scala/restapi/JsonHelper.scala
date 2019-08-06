@@ -28,7 +28,7 @@ object JsonHelper {
         pretty( render(Map("success" -> "true")) merge render( Map("result" -> Map(show -> location(show)))) )
       }
       else {
-        logger.error("Для данного IP-адреса не найдена информация про ${show}")
+        logger.error(s"For this IP information for ${show} wasn't found")
         errorJson(s"Для данного IP-адреса не найдена информация про ${show}")
       }
     case (Left(errorMsg), _) =>
