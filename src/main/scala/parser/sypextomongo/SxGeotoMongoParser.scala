@@ -447,8 +447,6 @@ object SxGeotoMongoParser {
           val timeAfterParsing = new Date(System.currentTimeMillis)
           logger.info(s"For ranges starting with ${mainBlock(0)}, time after parsing = ${sdf.format(timeAfterParsing)}")
 
-          val timeBeforeInserting = new Date(System.currentTimeMillis)
-          logger.info(s"For ranges starting with ${mainBlock(0)}, time before inserting = ${sdf.format(timeBeforeInserting)}")
           collection.insertMany(newparsedIpLocations).toFuture().onComplete {
             case Failure(e) =>
               logger.error(e.toString)
@@ -456,8 +454,6 @@ object SxGeotoMongoParser {
               logger.info(s"$obj was successfully inserted to Mongo DB")
 
           }
-          val timeAfterInserting = new Date(System.currentTimeMillis)
-          logger.info(s"For ranges starting with ${mainBlock(0)}, time after inserting = ${sdf.format(timeAfterInserting)}")
 
           mainBlock = mainBlock.drop(firstIPsize)
           rangesBlock = rangesBlock.drop(sizeofRangesforOneFirstIP)

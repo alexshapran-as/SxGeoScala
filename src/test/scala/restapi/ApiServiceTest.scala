@@ -39,7 +39,7 @@ class ApiServiceTest extends FunSuite with Matchers {
     "18.128.64.170" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("18.128.64.170"), "signature" -> "2DRrYf3tb99+qCQEaB8KY1orVfHo2KnE9cD8G+2p2ig="),
     "0.0.0.0" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("0.0.0.0"), "signature" -> "kmEYjQtOyEzWjyVWVXc5lnfM+pHX0NV7rn5CyqsQUmA="),
     "10.10.10.10" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("10.10.10.10"), "signature" -> "W94bsQnmqocPpw9kazxmf/2ivC8f/h91EIAz7Nv/AqA="),
-    "172.1.2.3" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("172.1.2.3"), "signature" -> "tC73LsELdw/S7dJr3mRFwPxK8fvfGEoIEw+ht5Xb9T8="),  //
+    "172.1.2.3" -> Map("expectedValue" -> thirdFourthFifthSixthExpectedValues("172.1.2.3"), "signature" -> "tC73LsELdw/S7dJr3mRFwPxK8fvfGEoIEw+ht5Xb9T8="),
     "256.256.1.1" -> Map("expectedValue" -> seventhExpectedValue, "signature" -> "AT+xSKbgq8El8Pr0SFWMo11Vc/cXYNqjlO8OYFXPZY4="),
     "2.2.1.1" -> Map("expectedValue" -> eighthExpectedValue, "signature" -> "Incorrect Signature")
   )
